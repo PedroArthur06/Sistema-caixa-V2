@@ -1,0 +1,116 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// 1. USUÁRIOS (Autenticação da Dona)
+// ==========================================
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String   // Senha criptografada (Hash)
+  name      String
+  role      String   @default("ADMIN") // Futuro: CAIXA vs ADMIN
+  createdAt DateTime @default(now())
+
+  @@map("users")
+}
+
+// ==========================================
+// 2. EMPRESAS / CONVÊNIOS (Seção 1)
+// ==========================================
+model Company {
+  id          String      @id @default(uuid())
+  name        String      
+  priceUnit   Decimal     @map("price_unit") @db.Decimal(10, 2) 
+  billingType BillingType @default(GROUP) @map("billing_type") 
+  active      Boolean     @default(true)
+  
+  movements   Movement[]  
+
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@map("companies")
+}
+
+enum BillingType {
+  GROUP      
+  INDIVIDUAL 
+}
+
+// ==========================================
+// 3. RELATÓRIO DIÁRIO (O "Caixa")
+// ==========================================
+model DailyReport {
+  id             String       @id @default(uuid())
+  date           DateTime     @unique @db.Date 
+  
+  openingBalance Decimal      @default(0) @map("opening_balance") @db.Decimal(10, 2)
+  finalBalance   Decimal?     @map("final_balance") @db.Decimal(10, 2)
+  
+  status         ReportStatus @default(OPEN)
+  
+  movements      Movement[]  
+  
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@map("daily_reports")
+}
+
+enum ReportStatus {
+  OPEN
+  CLOSED
+}
+
+// ==========================================
+// 4. MOVIMENTAÇÕES (O Átomo do Sistema)
+// ==========================================
+model Movement {
+  id           String        @id @default(uuid())
+  
+  reportId     String        @map("report_id")
+  report       DailyReport   @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  
+  companyId    String?       @map("company_id")
+  company      Company?      @relation(fields: [companyId], references: [id])
+  
+  type         MovementType  
+  itemCategory ItemCategory? @map("item_category")
+  
+  consumer     String?       
+  
+  description  String?       
+  
+  amount       Decimal       @db.Decimal(10, 2) 
+  quantity     Int           @default(1)        
+  
+  createdAt    DateTime      @default(now())
+
+  @@map("movements")
+}
+
+enum MovementType {
+  INCOME_CASH         
+  INCOME_DEBIT        
+  INCOME_CREDIT       
+  INCOME_QR_CODE      
+
+  INCOME_PIX_KEY      
+
+  INCOME_IFOOD        
+
+  INCOME_AGREEMENT    
+  EXPENSE             
+}
+
+enum ItemCategory {
+  MEAL   
+  EXTRA  
+}
