@@ -89,7 +89,8 @@ model Movement {
   description  String?       
   
   amount       Decimal       @db.Decimal(10, 2) 
-  quantity     Int           @default(1)        
+  quantity     Int           @default(1)
+  unitValue    Decimal?      @map("unit_value") @db.Decimal(10, 2)
   
   createdAt    DateTime      @default(now())
 
