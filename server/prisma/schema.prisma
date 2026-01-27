@@ -18,6 +18,9 @@ model User {
   role      String   @default("ADMIN") // Futuro: CAIXA vs ADMIN
   createdAt DateTime @default(now())
 
+  movements  Movement[]  // Movimentações criadas por este usuário
+  auditLogs  AuditLog[]  // Logs de auditoria deste usuário
+
   @@map("users")
 }
 
@@ -92,6 +95,9 @@ model Movement {
   quantity     Int           @default(1)
   unitValue    Decimal?      @map("unit_value") @db.Decimal(10, 2)
   
+  userId       String?       @map("user_id") // Quem criou esta movimentação
+  user         User?         @relation(fields: [userId], references: [id])
+  
   createdAt    DateTime      @default(now())
 
   @@map("movements")
@@ -114,4 +120,31 @@ enum MovementType {
 enum ItemCategory {
   MEAL   
   EXTRA  
+}
+
+// ==========================================
+// 5. AUDITORIA (Log de Ações)
+// ==========================================
+model AuditLog {
+  id         String   @id @default(uuid())
+  
+  userId     String   @map("user_id")
+  user       User     @relation(fields: [userId], references: [id])
+  
+  action     String   // CREATE, UPDATE, DELETE, LOGIN, etc.
+  entity     String   // Movement, Company, DailyReport, etc.
+  entityId   String?  @map("entity_id") // ID da entidade afetada
+  
+  oldValue   String?  @map("old_value") @db.Text // JSON do estado anterior
+  newValue   String?  @map("new_value") @db.Text // JSON do estado novo
+  
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  
+  createdAt  DateTime @default(now())
+
+  @@map("audit_logs")
+  @@index([userId])
+  @@index([entity, entityId])
+  @@index([createdAt])
 }
