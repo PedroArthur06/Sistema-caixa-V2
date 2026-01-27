@@ -1,0 +1,119 @@
+/* --- Estilos Base do Modal --- */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5); /* Fundo escuro transparente */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px); /* Efeito de vidro fosco chique */
+}
+
+.modal-content {
+  background: var(--color-surface);
+  padding: 2rem;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 450px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.modal-header h2 {
+  color: var(--color-primary);
+  font-size: 1.25rem;
+}
+
+.close-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.type-selector {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.type-btn {
+  flex: 1;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border);
+  background: white;
+  border-radius: 6px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  transition: all 0.2s;
+}
+
+.type-btn.active {
+  background-color: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+}
+
+.type-btn.expense.active {
+  background-color: var(--color-error);
+  border-color: var(--color-error);
+}
+
+.tab-btn.active.expense-tab {
+  color: var(--color-error);
+}
+
+/* --- Estilos Específicos do Convênio --- */
+.convenio-summary {
+  background-color: #FAFAFA;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px dashed var(--color-border);
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.convenio-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.total-row {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--color-border);
+  font-weight: bold;
+  font-size: 1.1rem;
+  color: var(--color-primary);
+}
+
+.checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  cursor: pointer;
+}
+
+.checkbox-group input {
+  width: 1.2rem;
+  height: 1.2rem;
+}
