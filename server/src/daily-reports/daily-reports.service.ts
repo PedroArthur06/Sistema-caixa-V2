@@ -1,14 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { DateProvider } from 'src/shared/providers/date-provider.service';
 
 @Injectable()
 export class DailyReportsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private dateProvider: DateProvider,
+  ) {}
 
   // Busca o caixa de HOJE. Se não existir, o front recebe null e mostra botão "Abrir Caixa"
   async getTodayReport() {
-    const today = new Date();
-    today.setUTCHours(0, 0, 0, 0);
+    const today = this.dateProvider.today();
 
     return this.prisma.dailyReport.findUnique({
       where: { date: today },
@@ -20,8 +23,7 @@ export class DailyReportsService {
 
   // Cria o caixa de hoje
   async startDay(openingBalance: number) {
-    const today = new Date();
-    today.setUTCHours(0, 0, 0, 0);
+    const today = this.dateProvider.today();
 
     const exists = await this.prisma.dailyReport.findUnique({ where: { date: today } });
     if (exists) return exists;

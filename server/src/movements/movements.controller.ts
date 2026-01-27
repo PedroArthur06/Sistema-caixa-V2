@@ -1,14 +1,16 @@
-import { Controller, Get, Post, Body } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Request } from '@nestjs/common';
 import { MovementsService } from './movements.service';
 import { CreateMovementDto } from './dto/create-movement.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('movements')
+@UseGuards(JwtAuthGuard)
 export class MovementsController {
   constructor(private readonly service: MovementsService) {}
 
   @Post()
-  create(@Body() createMovementDto: CreateMovementDto) {
-    return this.service.create(createMovementDto);
+  create(@Body() createMovementDto: CreateMovementDto, @Request() req) {
+    return this.service.create(createMovementDto, req.user.userId);
   }
 
   @Get()

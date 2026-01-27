@@ -3,14 +3,19 @@ import { CreateMovementDto } from './dto/create-movement.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { MovementType, ItemCategory, BillingType, Prisma } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
+import { DateProvider } from 'src/shared/providers/date-provider.service';
+import { AuditService } from '../audit/audit.service';
 
 @Injectable()
 export class MovementsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private dateProvider: DateProvider,
+    private auditService: AuditService,
+  ) {}
 
-  async create(dto: CreateMovementDto) {
-    const today = new Date();
-    today.setUTCHours(0, 0, 0, 0);
+  async create(dto: CreateMovementDto, userId: string) {
+    const today = this.dateProvider.today();
     
     const report = await this.prisma.dailyReport.findUnique({
       where: { date: today }
@@ -28,6 +33,11 @@ export class MovementsService {
 
       const company = await this.prisma.company.findUnique({ where: { id: dto.companyId } });
       if (!company) throw new NotFoundException('Empresa não encontrada.');
+      
+      // Verificar se a empresa está ativa
+      if (!company.active) {
+        throw new BadRequestException(`A empresa ${company.name} está inativa e não pode receber movimentações.`);
+      }
 
       if (dto.itemCategory === ItemCategory.MEAL) {
         unitValue = company.priceUnit; 
@@ -38,7 +48,8 @@ export class MovementsService {
         throw new BadRequestException(`A empresa ${company.name} exige o nome do funcionário.`);
       }
     }
-    return this.prisma.movement.create({
+    
+    const movement = await this.prisma.movement.create({
       data: {
         reportId: report.id,
         type: dto.type,
@@ -49,13 +60,24 @@ export class MovementsService {
         quantity: dto.quantity,
         amount: finalAmount,
         unitValue: unitValue,
+        userId: userId,
       },
     });
+
+    // Log de auditoria
+    await this.auditService.log({
+      userId,
+      action: 'CREATE',
+      entity: 'Movement',
+      entityId: movement.id,
+      newValue: movement,
+    });
+
+    return movement;
   }
 
   async findAllToday() {
-    const today = new Date();
-    today.setUTCHours(0, 0, 0, 0);
+    const today = this.dateProvider.today();
 
     const report = await this.prisma.dailyReport.findUnique({ where: { date: today } });
     if (!report) return [];
