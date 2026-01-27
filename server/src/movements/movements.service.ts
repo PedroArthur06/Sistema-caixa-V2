@@ -14,7 +14,7 @@ export class MovementsService {
     private auditService: AuditService,
   ) {}
 
-  async create(dto: CreateMovementDto, userId: string) {
+  async create(dto: CreateMovementDto, userId: string, ip?: string, userAgent?: string) {
     const today = this.dateProvider.today();
     
     const report = await this.prisma.dailyReport.findUnique({
@@ -25,7 +25,7 @@ export class MovementsService {
       throw new BadRequestException('O caixa de hoje não está aberto!');
     }
 
-    let finalAmount = dto.amount;
+    let finalAmount = new Decimal(dto.amount); 
     let unitValue: Decimal | null = null;
 
     if (dto.type === MovementType.INCOME_AGREEMENT) {
@@ -41,7 +41,7 @@ export class MovementsService {
 
       if (dto.itemCategory === ItemCategory.MEAL) {
         unitValue = company.priceUnit; 
-        finalAmount = Number(company.priceUnit) * dto.quantity; 
+        finalAmount = company.priceUnit.mul(dto.quantity); 
       }
 
       if (company.billingType === BillingType.INDIVIDUAL && !dto.consumer) {
@@ -49,31 +49,37 @@ export class MovementsService {
       }
     }
     
-    const movement = await this.prisma.movement.create({
-      data: {
-        reportId: report.id,
-        type: dto.type,
-        companyId: dto.companyId,
-        itemCategory: dto.itemCategory,
-        consumer: dto.consumer,
-        description: dto.description,
-        quantity: dto.quantity,
-        amount: finalAmount,
-        unitValue: unitValue,
-        userId: userId,
-      },
-    });
-
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Cria a movimentação usando a transação (tx)
+      const movement = await tx.movement.create({
+        data: {
+          reportId: report.id,
+          type: dto.type,
+          companyId: dto.companyId,
+          itemCategory: dto.itemCategory,
+          consumer: dto.consumer,
+          description: dto.description,
+          quantity: dto.quantity,
+          amount: finalAmount, 
+          unitValue: unitValue,
+          userId: userId,
+        },
+      });
     // Log de auditoria
-    await this.auditService.log({
-      userId,
-      action: 'CREATE',
-      entity: 'Movement',
-      entityId: movement.id,
-      newValue: movement,
-    });
+    await tx.auditLog.create({
+        data: {
+            userId,
+            action: 'CREATE',
+            entity: 'Movement',
+            entityId: movement.id,
+            newValue: JSON.stringify(movement), 
+            ipAddress: ip,       
+            userAgent: userAgent
+        }
+      });
 
-    return movement;
+      return movement;
+    });
   }
 
   async findAllToday() {
