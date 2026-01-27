@@ -1,26 +1,37 @@
 import { Injectable } from '@nestjs/common';
-import { CreateDailyReportDto } from './dto/create-daily-report.dto';
-import { UpdateDailyReportDto } from './dto/update-daily-report.dto';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class DailyReportsService {
-  create(createDailyReportDto: CreateDailyReportDto) {
-    return 'This action adds a new dailyReport';
+  constructor(private prisma: PrismaService) {}
+
+  // Busca o caixa de HOJE. Se não existir, o front recebe null e mostra botão "Abrir Caixa"
+  async getTodayReport() {
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+
+    return this.prisma.dailyReport.findUnique({
+      where: { date: today },
+      include: {
+        movements: { orderBy: { createdAt: 'desc' }, take: 5 } 
+      }
+    });
   }
 
-  findAll() {
-    return `This action returns all dailyReports`;
-  }
+  // Cria o caixa de hoje
+  async startDay(openingBalance: number) {
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
 
-  findOne(id: number) {
-    return `This action returns a #${id} dailyReport`;
-  }
+    const exists = await this.prisma.dailyReport.findUnique({ where: { date: today } });
+    if (exists) return exists;
 
-  update(id: number, updateDailyReportDto: UpdateDailyReportDto) {
-    return `This action updates a #${id} dailyReport`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} dailyReport`;
+    return this.prisma.dailyReport.create({
+      data: {
+        date: today,
+        openingBalance: openingBalance,
+        status: 'OPEN',
+      },
+    });
   }
 }
