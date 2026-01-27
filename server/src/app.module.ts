@@ -6,13 +6,12 @@ import { DailyReportsModule } from './daily-reports/daily-reports.module';
 import { MovementsModule } from './movements/movements.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
-import { DateProvider } from './shared/providers/date-provider.service';
 import { AuditModule } from './audit/audit.module';
+import { SharedModule } from './shared/shared.module';
 
 @Module({
-  imports: [CompaniesModule, DailyReportsModule, MovementsModule, PrismaModule, AuthModule, AuditModule],
+  imports: [SharedModule, CompaniesModule, DailyReportsModule, MovementsModule, PrismaModule, AuthModule, AuditModule],
   controllers: [AppController],
-  providers: [AppService, DateProvider],
-  exports: [DateProvider],
+  providers: [AppService],
 })
 export class AppModule {}
