@@ -1,0 +1,42 @@
+:root {
+  /* --- Paleta Villa Bistrô --- */
+  
+  /* Marrom Escuro (Café/Madeira) - Para Botões e Títulos */
+  --color-primary: #3E2723; 
+  --color-primary-hover: #5D4037; /* Um pouco mais claro para quando passar o mouse */
+  
+  /* Bege Claro (Creme/Massa) - Para o Fundo da Tela */
+  --color-background: #F5F1E8; 
+  
+  /* Branco - Para Cartões e Inputs */
+  --color-surface: #FFFFFF;
+  
+  /* Texto */
+  --color-text-main: #2C1E1A; /* Quase preto, mas é um marrom muito escuro (mais elegante) */
+  --color-text-muted: #8D7B75; /* Cinza amarronzado para subtítulos */
+  
+  /* Bordas */
+  --color-border: #D7CCC8;
+  
+  /* Feedback */
+  --color-error: #D32F2F;
+  --color-error-bg: #FFEBEE;
+}
+
+/* Reset Básico (Mantenha isso para garantir que funcione igual em todo navegador) */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif; /* Ou a fonte que você preferir */
+  background-color: var(--color-background); /* Aplica o Bege no fundo do site todo */
+  color: var(--color-text-main);
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  cursor: pointer;
+}
