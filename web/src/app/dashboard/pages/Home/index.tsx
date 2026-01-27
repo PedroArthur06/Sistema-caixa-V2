@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../../../../shared/contexts/AuthContext";
 import { type DailyReport, dailyReportsService } from "../../services/daily-reports.service";
+import { NewMovementModal } from "../../components/NewMovementModal";
 
 export function Dashboard() {
   const { signOut, user } = useAuth();
@@ -12,6 +13,8 @@ export function Dashboard() {
   useEffect(() => {
     loadReport();
   }, []);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   async function loadReport() {
     try {
