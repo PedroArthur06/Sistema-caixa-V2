@@ -3,6 +3,7 @@ import { useAuth } from "../../../../shared/contexts/AuthContext";
 import { dailyReportsService, type DailyReport } from "../../services/daily-reports.service";
 import { CounterClosingPanel } from "../../components/CounterClosingPanel";
 import { AgreementsPanel } from "../../components/AgreementsPanel";
+import { FinalReportPanel } from "../../components/FinalReportPanel";
 import { movementsService, MovementType } from "../../services/movements.service";
 
 type Tab = 'BALCAO' | 'CONVENIOS' | 'RESUMO';
@@ -123,34 +124,30 @@ export function Dashboard() {
           )}
 
           {activeTab === 'RESUMO' && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
-              <div style={{ background: 'white', padding: '2rem', borderRadius: '12px' }}>
-                <h3 style={{ color: 'var(--color-error)' }}>Saída de Caixa</h3>
-                <p style={{ color: '#666', marginBottom: '1rem' }}>Sangrias, compras de insumos, etc.</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+              
+              {/* Painel de Ações Rápidas (Despesa) */}
+              <div style={{ background: 'white', padding: '1.5rem', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <h3 style={{ margin: 0 }}>💸 Despesas e Sangrias</h3>
+                  <p style={{ margin: 0, color: '#666', fontSize: '0.9rem' }}>Lançar valores para abater do caixa</p>
+                </div>
                 <button 
                   onClick={() => {
-                    const v = prompt("Valor (R$):");
+                    const v = prompt("Valor da saída (R$):");
                     const d = prompt("Descrição:");
-                    if(v && d) movementsService.create({ type: MovementType.EXPENSE, amount: Number(v), quantity: 1, description: d }).then(() => { alert("Salvo"); loadReport(); });
+                    if(v && d) movementsService.create({ type: MovementType.EXPENSE, amount: Number(v), quantity: 1, description: d }).then(() => { alert("Saída registrada!"); loadReport(); });
                   }}
                   className="btn-primary"
-                  style={{ background: 'var(--color-error)' }}
+                  style={{ background: '#FECCA4', color: '#B45309', border: '1px solid #FDBA74' }}
                 >
-                  LANÇAR DESPESA
+                  - LANÇAR DESPESA
                 </button>
               </div>
 
-              <div style={{ background: 'white', padding: '2rem', borderRadius: '12px' }}>
-                <h3>Relatórios</h3>
-                <p style={{ color: '#666', marginBottom: '1rem' }}>Gerar resumo para envio no WhatsApp.</p>
-                <button 
-                  className="btn-primary" 
-                  style={{ background: '#25D366' }}
-                  onClick={() => alert("Texto copiado!")}
-                >
-                  COPIAR RELATÓRIO DO DIA
-                </button>
-              </div>
+              {/* O Novo Relatório Final */}
+              <FinalReportPanel report={report} />
+
             </div>
           )}
 

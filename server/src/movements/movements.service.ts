@@ -24,6 +24,9 @@ export class MovementsService {
     if (!report || report.status === 'CLOSED') {
       throw new BadRequestException('O caixa de hoje não está aberto!');
     }
+    if (dto.type !== MovementType.INCOME_AGREEMENT && dto.amount <= 0) {
+     throw new BadRequestException("O valor da movimentação deve ser maior que zero.");
+  }
 
     let finalAmount = new Decimal(dto.amount); 
     let unitValue: Decimal | null = null;

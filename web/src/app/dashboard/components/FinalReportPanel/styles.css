@@ -1,0 +1,125 @@
+.final-report-card {
+  background-color: #0F172A; /* Slate 900 */
+  border-radius: 12px;
+  padding: 2rem;
+  color: white;
+  width: 100%;
+}
+
+.report-header {
+  margin-bottom: 2rem;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  padding-bottom: 1rem;
+}
+
+.report-header h3 {
+  color: #F8FAFC;
+  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.report-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.report-box {
+  background: #1E293B; /* Slate 800 */
+  padding: 1.25rem;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+.report-box label {
+  color: #94A3B8; /* Slate 400 */
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.report-box .value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: white;
+}
+
+/* Colors for positive/negative */
+.report-box .value.income {
+  color: #fff; 
+}
+.report-box .value.expense {
+  color: #F87171; /* Red 400 */
+}
+
+/* Highlight Box (Total) */
+.report-box.total-hl {
+  background: #4F46E5; /* Indigo 600 */
+  position: relative;
+  overflow: hidden;
+}
+
+.report-box.total-hl::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 100px;
+  height: 100px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.report-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.btn-copy {
+  background: white;
+  color: #0F172A;
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: background 0.2s;
+}
+
+.btn-copy:hover {
+  background: #F1F5F9;
+}
+
+.btn-refresh {
+  background: #334155;
+  color: white;
+  border: none;
+  width: 50px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1.2rem;
+}
+
+.btn-refresh:hover {
+  background: #475569;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .report-grid {
+    grid-template-columns: 1fr;
+  }
+}
