@@ -1,0 +1,118 @@
+.panel-container {
+  background: white;
+  padding: 1rem;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 0.5rem;
+}
+
+.companies-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.company-card {
+  background: #f8f9fa;
+  border: 1px solid var(--color-border);
+  padding: 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s;
+}
+
+.company-card:hover {
+  border-color: var(--color-primary);
+}
+
+.company-card.active {
+  background-color: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+}
+
+.company-card.active .company-price {
+  color: #e2e8f0;
+}
+
+.company-name {
+  display: block;
+  font-weight: 600;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.company-price {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.action-area {
+  margin-top: auto;
+  background-color: var(--color-background);
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+}
+
+.qty-selector {
+  display: flex;
+  gap: 5px;
+  margin: 0.5rem 0;
+}
+
+.qty-selector button {
+  width: 40px;
+  height: 40px;
+  font-size: 1.2rem;
+  border: 1px solid var(--color-border);
+  background: white;
+  cursor: pointer;
+}
+
+.qty-selector input {
+  flex: 1;
+  text-align: center;
+  font-size: 1.2rem;
+  border: 1px solid var(--color-border);
+}
+
+.create-company-box {
+  background: #fff3e0;
+  padding: 0.5rem;
+  margin-bottom: 1rem;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.create-company-box input, .create-company-box select {
+  padding: 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+}
+
+.launch-btn {
+  width: 100%;
+  margin-top: 1rem;
+  padding: 1rem;
+  font-size: 1.1rem;
+}
