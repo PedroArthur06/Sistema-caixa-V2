@@ -1,83 +1,158 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 :root {
-  /* --- Paleta Villa Bistrô --- */
+  /* --- Paleta Villa Bistrô (Refinada) --- */
+  --color-primary: #4E342E; /* Marrom Café Intenso */
+  --color-primary-light: #795548; /* Marrom Leite */
+  --color-primary-soft: #D7CCC8; /* Bege Cappuccino (para fundos de seleção) */
   
-  /* Marrom Escuro (Café/Madeira) - Para Botões e Títulos */
-  --color-primary: #3E2723; 
-  --color-primary-hover: #5D4037; /* Um pouco mais claro para quando passar o mouse */
-  
-  /* Bege Claro (Creme/Massa) - Para o Fundo da Tela */
-  --color-background: #F5F1E8; 
-  
-  /* Branco - Para Cartões e Inputs */
+  --color-background: #FDFBF7; /* Um Off-White quente (não bege escuro) */
   --color-surface: #FFFFFF;
   
-  /* Texto */
-  --color-text-main: #2C1E1A; /* Quase preto, mas é um marrom muito escuro (mais elegante) */
-  --color-text-muted: #8D7B75; /* Cinza amarronzado para subtítulos */
+  --color-text-main: #2D2422;
+  --color-text-muted: #867A76;
   
-  /* Bordas */
-  --color-border: #D7CCC8;
+  --color-border: #EFEBE9; /* Muito sutil */
   
-  /* Feedback */
-  --color-error: #D32F2F;
+  --color-success: #2E7D32;
+  --color-success-bg: #E8F5E9;
+  
+  --color-error: #C62828;
   --color-error-bg: #FFEBEE;
+
+  /* --- Sombras Modernas (A chave do design 2025) --- */
+  --shadow-sm: 0 1px 2px rgba(62, 39, 35, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(62, 39, 35, 0.08), 0 2px 4px -1px rgba(62, 39, 35, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(62, 39, 35, 0.08), 0 4px 6px -2px rgba(62, 39, 35, 0.04);
+  
+  /* --- Raios de Borda --- */
+  --radius-sm: 6px;
+  --radius-md: 12px; /* Padrão moderno */
+  --radius-lg: 24px;
 }
 
-/* Reset Básico (Mantenha isso para garantir que funcione igual em todo navegador) */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-}
-
-body {
-  font-family: 'Inter', sans-serif; /* Ou a fonte que você preferir */
-  background-color: var(--color-background); /* Aplica o Bege no fundo do site todo */
-  color: var(--color-text-main);
   -webkit-font-smoothing: antialiased;
 }
 
-button {
-  cursor: pointer;
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--color-background);
+  color: var(--color-text-main);
+  line-height: 1.5;
 }
 
-/* --- Sistema de Abas Clean --- */
+/* --- Botões Modernos --- */
+button {
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  background-color: var(--color-primary);
+  color: white;
+  padding: 0.875rem 1.5rem;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 1rem;
+  box-shadow: var(--shadow-md);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.btn-primary:hover {
+  background-color: var(--color-primary-light);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-lg);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+/* --- Inputs "Chunky" (Fáceis de clicar no touch) --- */
+input, select {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border: 1px solid transparent; /* Sem borda visível inicialmente */
+  background-color: #F3F0EB; /* Fundo cinza/bege claro */
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  color: var(--color-text-main);
+  transition: all 0.2s;
+  font-family: 'Inter', sans-serif;
+}
+
+input:focus, select:focus {
+  outline: none;
+  background-color: var(--color-surface);
+  border-color: var(--color-primary-light);
+  box-shadow: 0 0 0 4px rgba(121, 85, 72, 0.1); /* Anel de foco suave */
+}
+
+/* --- Cards (O elemento principal da UI) --- */
+.card-glass {
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border);
+  padding: 1.5rem;
+}
+
+/* --- Scrollbar Bonita --- */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: #D7CCC8;
+  border-radius: 20px;
+}
+
+/* --- Navegação por Abas (Estilo Pílula) --- */
 .tab-navigation {
   display: flex;
-  gap: 2rem;
-  border-bottom: 2px solid #e5e7eb;
-  margin-bottom: 2rem;
-  padding: 0 1rem;
+  background-color: rgba(255, 255, 255, 0.6); /* Semi-transparente */
+  padding: 0.3rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  width: fit-content;
+  margin: 0 auto 2rem auto; /* Centralizado */
+  gap: 0.5rem;
+  backdrop-filter: blur(8px); /* Efeito vidro */
 }
 
 .tab-item {
-  padding: 1rem 0.5rem;
-  font-size: 1.1rem;
+  padding: 0.6rem 1.5rem;
+  border-radius: 20px; /* Bem redondo */
   font-weight: 500;
   color: var(--color-text-muted);
   background: transparent;
-  border: none;
-  cursor: pointer;
-  position: relative;
   transition: all 0.2s;
+  border: none;
 }
 
 .tab-item:hover {
   color: var(--color-primary);
+  background-color: rgba(78, 52, 46, 0.05);
 }
 
 .tab-item.active {
-  color: var(--color-primary);
-  font-weight: 700;
-}
-
-.tab-item.active::after {
-  content: '';
-  position: absolute;
-  bottom: -2px;
-  left: 0;
-  width: 100%;
-  height: 3px;
   background-color: var(--color-primary);
-  border-radius: 3px 3px 0 0;
+  color: white;
+  box-shadow: var(--shadow-md);
+  font-weight: 600;
+}
+/* Remova o ::after (underline) antigo */
+.tab-item.active::after {
+  display: none;
 }
