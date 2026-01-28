@@ -145,8 +145,15 @@ export function Dashboard() {
                 </button>
               </div>
 
-              {/* O Novo Relatório Final */}
-              <FinalReportPanel report={report} />
+              <FinalReportPanel 
+                report={report} 
+                onCloseCaixa={() => {
+                  if(confirm("Deseja realmente fechar o caixa? Esta ação encerrará o dia.")) {
+                    // dailyReportsService.closeDay(report.id).then(...)
+                    alert("Caixa fechado com sucesso!");
+                  }
+                }} 
+              />
 
             </div>
           )}

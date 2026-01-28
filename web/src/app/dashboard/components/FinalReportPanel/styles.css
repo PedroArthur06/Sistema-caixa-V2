@@ -1,125 +1,91 @@
 .final-report-card {
-  background-color: #0F172A; /* Slate 900 */
-  border-radius: 12px;
-  padding: 2rem;
+  background-color: #0F172A;
+  border-radius: 16px;
+  padding: 1.5rem; /* Reduzido */
   color: white;
   width: 100%;
+  max-width: 500px; /* AGORA O CARD NÃO ESTICA INFINITAMENTE */
+  margin: 0 auto;   /* Centraliza o card na aba */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 }
 
 .report-header {
-  margin-bottom: 2rem;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
-  padding-bottom: 1rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .report-header h3 {
-  color: #F8FAFC;
-  font-size: 1.25rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  font-size: 1.1rem;
+  margin: 0;
+  opacity: 0.9;
 }
 
 .report-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
-  margin-bottom: 2rem;
+  display: flex;
+  flex-direction: column; /* Lista vertical ocupa menos espaço lateral */
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
 }
 
 .report-box {
-  background: #1E293B; /* Slate 800 */
-  padding: 1.25rem;
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  border: 1px solid rgba(255,255,255,0.05);
+  justify-content: space-between; /* Texto na esquerda, valor na direita */
+  align-items: center;
+  transition: background 0.2s;
+}
+
+.report-box:hover {
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .report-box label {
-  color: #94A3B8; /* Slate 400 */
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
+  color: #94A3B8;
+  font-size: 0.7rem;
+  font-weight: 600;
   letter-spacing: 0.5px;
 }
 
 .report-box .value {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: white;
+  font-size: 1.1rem; /* Fonte menor e mais elegante */
+  font-weight: 700;
+  font-family: 'Inter', sans-serif;
 }
 
-/* Colors for positive/negative */
-.report-box .value.income {
-  color: #fff; 
-}
-.report-box .value.expense {
-  color: #F87171; /* Red 400 */
-}
+.report-box .value.income { color: #4ADE80; } /* Verde mais vivo */
+.report-box .value.expense { color: #F87171; }
 
-/* Highlight Box (Total) */
+/* Destaque para o Total */
 .report-box.total-hl {
-  background: #4F46E5; /* Indigo 600 */
-  position: relative;
-  overflow: hidden;
-}
-
-.report-box.total-hl::after {
-  content: '';
-  position: absolute;
-  top: -50%;
-  right: -50%;
-  width: 100px;
-  height: 100px;
-  background: rgba(255,255,255,0.1);
-  border-radius: 50%;
-  pointer-events: none;
+  background: #4F46E5;
+  margin-top: 0.5rem;
 }
 
 .report-actions {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
 }
 
-.btn-copy {
-  background: white;
-  color: #0F172A;
-  border: none;
-  padding: 1rem 2rem;
+.btn-copy, .btn-close-day {
+  padding: 0.75rem;
   border-radius: 8px;
   font-weight: 700;
-  font-size: 1rem;
+  font-size: 0.85rem;
   cursor: pointer;
+  border: none;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
-  transition: background 0.2s;
 }
 
-.btn-copy:hover {
-  background: #F1F5F9;
-}
+.btn-copy { background: #F8FAFC; color: #0F172A; }
+.btn-close-day { background: #EF4444; color: white; }
 
-.btn-refresh {
-  background: #334155;
-  color: white;
-  border: none;
-  width: 50px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 1.2rem;
-}
-
-.btn-refresh:hover {
-  background: #475569;
-}
-
-/* Mobile */
-@media (max-width: 768px) {
-  .report-grid {
-    grid-template-columns: 1fr;
-  }
-}
+.btn-copy:hover { background: #E2E8F0; }
+.btn-close-day:hover { background: #DC2626; }
