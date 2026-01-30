@@ -97,4 +97,36 @@ export class MovementsService {
       include: { company: true }
     });
   }
+
+  async delete(id: string, userId: string, ip?: string, userAgent?: string) {
+    const today = this.dateProvider.today();
+    const report = await this.prisma.dailyReport.findUnique({ where: { date: today } });
+
+    if (!report || report.status === 'CLOSED') {
+      throw new BadRequestException('O caixa de hoje não está aberto!');
+    }
+
+    const movement = await this.prisma.movement.findUnique({ where: { id } });
+    if (!movement) throw new NotFoundException('Movimentação não encontrada.');
+
+    if (movement.reportId !== report.id) {
+       throw new BadRequestException('Não é possível excluir movimentações de dias anteriores.');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.movement.delete({ where: { id } });
+
+      await tx.auditLog.create({
+        data: {
+          userId,
+          action: 'DELETE',
+          entity: 'Movement',
+          entityId: id,
+          oldValue: JSON.stringify(movement),
+          ipAddress: ip,
+          userAgent: userAgent
+        }
+      });
+    });
+  }
 }

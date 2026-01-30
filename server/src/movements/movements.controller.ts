@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Req, Delete, Param } from '@nestjs/common';
 import { MovementsService } from './movements.service';
 import { CreateMovementDto } from './dto/create-movement.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -29,5 +29,13 @@ export class MovementsController {
   @Get()
   findAllToday() {
     return this.service.findAllToday();
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string, @Req() req: RequestWithUser) {
+    const userId = req.user.id;
+    const ip = (req.headers['x-forwarded-for'] as string) || req.ip;
+    const userAgent = req.headers['user-agent'];
+    return this.service.delete(id, userId, ip, userAgent);
   }
 }
