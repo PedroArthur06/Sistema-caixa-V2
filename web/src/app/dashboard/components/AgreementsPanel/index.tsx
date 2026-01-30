@@ -1,226 +1,315 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { MovementType, movementsService, type CreateMovementDTO } from '../../services/movements.service';
+import type { DailyReport } from '../../services/daily-reports.service';
 import { companiesService, type Company } from '../../services/companies.service';
-import { movementsService, MovementType } from '../../services/movements.service';
 import './styles.css';
 
-interface AgreementRow {
-  id: string;
-  companyId: string;
-  quantity: number;
-  consumer: string;
+interface AgreementsPanelProps {
+  report: DailyReport;
+  onSuccess: () => void;
 }
 
-export function AgreementsPanel({ onSuccess }: { onSuccess: () => void }) {
+export function AgreementsPanel({ report, onSuccess }: AgreementsPanelProps) {
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
   
-  // Initialize with one empty row
-  const [rows, setRows] = useState<AgreementRow[]>([
-    { id: crypto.randomUUID(), companyId: '', quantity: 1, consumer: '' }
-  ]);
-  
-  // Creation Modal State
-  const [isCreating, setIsCreating] = useState(false);
-  const [newCompany, setNewCompany] = useState({ name: '', price: '', type: 'GROUP' as 'GROUP'|'INDIVIDUAL' });
+  // New Company Form State
+  const [newCompany, setNewCompany] = useState({
+    name: '',
+    priceUnit: '',
+    billingType: 'GROUP' as 'GROUP' | 'INDIVIDUAL'
+  });
 
-  useEffect(() => { loadCompanies(); }, []);
+  useEffect(() => {
+    loadCompanies();
+  }, []);
 
   async function loadCompanies() {
-    companiesService.getAll().then(setCompanies).catch(console.error);
-  }
-
-  // --- Row Management ---
-
-  function handleAddRow() {
-    setRows([...rows, { id: crypto.randomUUID(), companyId: '', quantity: 1, consumer: '' }]);
-  }
-
-  function handleRemoveRow(id: string) {
-    if (rows.length === 1) {
-      setRows([{ id: crypto.randomUUID(), companyId: '', quantity: 1, consumer: '' }]);
-      return;
-    }
-    setRows(rows.filter(r => r.id !== id));
-  }
-
-  function updateRow(id: string, field: keyof AgreementRow, value: any) {
-    setRows(rows.map(r => {
-      if (r.id === id) {
-        return { ...r, [field]: value };
-      }
-      return r;
-    }));
-  }
-
-  // --- Calculations ---
-
-  const calculateRowTotal = (row: AgreementRow) => {
-    const company = companies.find(c => c.id === row.companyId);
-    if (!company) return 0;
-    return Number(company.priceUnit) * row.quantity;
-  };
-
-  const grandTotal = rows.reduce((acc, row) => acc + calculateRowTotal(row), 0);
-
-  // --- Actions ---
-
-  async function handleLaunch() {
-    // Validate
-    const invalidRow = rows.find(r => !r.companyId);
-    if (invalidRow) return alert("Selecione a empresa em todas as linhas!");
-
-    // Check individual consumers
-    for (const row of rows) {
-      const company = companies.find(c => c.id === row.companyId);
-      if (company?.billingType === 'INDIVIDUAL' && !row.consumer) {
-        return alert(`Preencha o nome do funcionário para a empresa ${company.name}`);
-      }
-    }
-
     try {
-      // Process one by one (could be parallelized too)
-      await Promise.all(rows.map(async (row) => {
-        const company = companies.find(c => c.id === row.companyId);
+      const data = await companiesService.getAll();
+      setCompanies(data);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  // Group movements by Company
+  const agreementsByCompany = useMemo(() => {
+    const agreements = report.movements?.filter(m => m.type === MovementType.INCOME_AGREEMENT) || [];
+    const grouped = new Map<string, { company: Company, movements: typeof agreements }>();
+
+    agreements.forEach(m => {
+      if (m.companyId) {
+        // Find company in our list or fallback to embedded company
+        const company = companies.find(c => c.id === m.companyId) || m.company as unknown as Company; 
         if (!company) return;
 
-        await movementsService.create({
-          type: MovementType.INCOME_AGREEMENT,
-          companyId: row.companyId,
-          amount: 0, // Backend calculates or ignores this based on quantity? Usually price is fetched backend-side or we might need to send expected amount. 
-                     // Looking at previous code, amount was 0. 
-          quantity: company.billingType === 'INDIVIDUAL' ? 1 : row.quantity,
-          consumer: company.billingType === 'INDIVIDUAL' ? row.consumer : '',
-          itemCategory: 'MEAL',
-          description: 'Marmita Convênio'
-        });
-      }));
+        if (!grouped.has(company.id)) {
+          grouped.set(company.id, { company, movements: [] });
+        }
+        grouped.get(company.id)?.movements.push(m);
+      }
+    });
+    return Array.from(grouped.values());
+  }, [report, companies]);
 
+  const totalAgreements = useMemo(() => {
+    return (report.movements?.filter(m => m.type === MovementType.INCOME_AGREEMENT) || [])
+      .reduce((acc, curr) => acc + Number(curr.amount), 0);
+  }, [report]);
+
+  // Handlers
+  async function handleAddAgreement(companyId: string) {
+    if (!companyId) return;
+    const company = companies.find(c => c.id === companyId);
+    if (!company) return;
+
+    // Check if group already exists
+    if (company.billingType === 'GROUP') {
+      const existing = agreementsByCompany.find(g => g.company.id === companyId);
+      if (existing) {
+        alert("Esta empresa já está na lista. Ajuste a quantidade na linha existente.");
+        return;
+      }
+    }
+
+    // Create default movement
+    try {
+      await movementsService.create({
+        type: MovementType.INCOME_AGREEMENT,
+        amount: Number(company.priceUnit),
+        quantity: 1,
+        companyId: company.id,
+        description: `Convênio: ${company.name}`,
+        unitValue: Number(company.priceUnit), 
+        consumer: ''
+      } as any); // Cast because unitValue might not be in CreateDTO but backend accepts it? relying on service
       onSuccess();
-      setRows([{ id: crypto.randomUUID(), companyId: '', quantity: 1, consumer: '' }]);
-      alert("Lançamentos realizados com sucesso!");
-    } catch (e) {
-      console.error(e);
-      alert("Erro ao lançar convênios.");
+    } catch (error) {
+      alert("Erro ao adicionar convênio");
     }
   }
 
-  async function handleCreate() {
-    if (!newCompany.name || !newCompany.price) return;
+  async function handleUpdateQuantity(movementId: string, newQty: number, unitPrice: number) {
+    if (newQty < 1) return;
+    try {
+      await movementsService.update(movementId, {
+        quantity: newQty,
+        amount: newQty * unitPrice
+      });
+      onSuccess();
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  async function handleUpdateConsumer(movementId: string, name: string) {
+    try {
+      await movementsService.update(movementId, {
+        consumer: name
+      });
+      onSuccess(); // Refresh to show saved state? Or just local? Better to refresh.
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  async function handleDelete(id: string) {
+    if (confirm("Remover este item?")) {
+      try {
+        await movementsService.delete(id);
+        onSuccess();
+      } catch (error) {
+        alert("Erro ao remover");
+      }
+    }
+  }
+
+  async function handleRegisterCompany(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newCompany.name || !newCompany.priceUnit) return;
+
     try {
       await companiesService.create({
         name: newCompany.name,
-        priceUnit: Number(newCompany.price),
-        billingType: newCompany.type
+        priceUnit: Number(newCompany.priceUnit),
+        billingType: newCompany.billingType
       });
       await loadCompanies();
-      setIsCreating(false);
-      setNewCompany({ name: '', price: '', type: 'GROUP' });
-      alert("Empresa Salva!");
-    } catch (e) { alert("Erro ao criar"); }
+      setShowRegisterModal(false);
+      setNewCompany({ name: '', priceUnit: '', billingType: 'GROUP' });
+      alert("Empresa cadastrada com sucesso!");
+    } catch (error) {
+      alert("Erro ao cadastrar empresa");
+    }
   }
 
   return (
-    <div className="agreements-container">
-      <div className="header-row">
-        <h3>🏢 Vouchers & Convênios</h3>
-        <button onClick={() => setIsCreating(!isCreating)} className="btn-secondary">
-          {isCreating ? 'Cancelar' : '+ Nova Empresa'}
+    <div className="agreements-section">
+      <div className="section-header">
+        <div className="header-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="icon-indigo">
+            <rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M8 10h.01"/><path d="M16 10h.01"/><path d="M8 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M16 18h.01"/>
+          </svg>
+          <h3>Vouchers & Convênios</h3>
+        </div>
+        <div className="total-badge">
+          R$ {totalAgreements.toFixed(2)}
+        </div>
+      </div>
+
+      <div className="list-container">
+        {agreementsByCompany.length === 0 ? (
+          <div className="empty-state">Nenhum convênio lançado hoje.</div>
+        ) : (
+          <ul className="items-list">
+            {agreementsByCompany.map(({ company, movements }) => (
+              <li key={company.id} className="list-group-item">
+                {company.billingType === 'GROUP' ? (
+                  // GROUP LAYOUT
+                  movements.map(m => (
+                    <div key={m.id} className="row-content">
+                      <div className="col-company">
+                        <label className="field-label">Empresa</label>
+                        <select className="modern-select" disabled value={company.id}>
+                           <option>{company.name}</option>
+                        </select>
+                      </div>
+                      <div className="col-qty">
+                        <label className="field-label">Qtd</label>
+                        <input 
+                          type="number" 
+                          className="modern-input center-text"
+                          value={m.quantity}
+                          onChange={(e) => handleUpdateQuantity(m.id, Number(e.target.value), Number(company.priceUnit))}
+                        />
+                      </div>
+                      <div className="col-total">
+                        <label className="field-label">Total</label>
+                        <span className="total-value">R$ {Number(m.amount).toFixed(2)}</span>
+                      </div>
+                      <button onClick={() => handleDelete(m.id)} className="btn-delete-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  // INDIVIDUAL LAYOUT
+                  <div className="individual-group">
+                    <div className="group-header">
+                       <span className="group-title">{company.name}</span>
+                       <span className="group-badge">Unitário</span>
+                    </div>
+                    {movements.map(m => (
+                      <div key={m.id} className="row-content individual-row">
+                         <div className="col-company">
+                            <input 
+                              type="text" 
+                              className="modern-input"
+                              placeholder="Nome da pessoa..."
+                              value={m.consumer || ''}
+                              onChange={(e) => handleUpdateConsumer(m.id, e.target.value)}
+                              onBlur={(e) => handleUpdateConsumer(m.id, e.target.value)} // Ensure save on blur
+                            />
+                         </div>
+                         <div className="col-total">
+                            <span className="total-value">R$ {Number(m.amount).toFixed(2)}</span>
+                         </div>
+                         <button onClick={() => handleDelete(m.id)} className="btn-delete-icon">
+                           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                         </button>
+                      </div>
+                    ))}
+                    <button className="btn-add-unit" onClick={() => handleAddAgreement(company.id)}>
+                      + Adicionar Pessoa
+                    </button>
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {/* Add Agreement Section */}
+      <div className="add-section">
+        <select 
+          className="modern-select full-width" 
+          value="" 
+          onChange={(e) => handleAddAgreement(e.target.value)}
+        >
+          <option value="">+ Adicionar Convênio</option>
+          {companies.map(c => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+        </select>
+        
+        <div className="register-divider">
+           <span>ou</span>
+        </div>
+
+        <button className="btn-register-new" onClick={() => setShowRegisterModal(true)}>
+           Cadastrar Novo Convênio
         </button>
       </div>
 
-      {/* CREATE NEW COMPANY */}
-      {isCreating && (
-        <div className="create-box">
-          <input placeholder="Nome da Empresa" value={newCompany.name} onChange={e => setNewCompany({...newCompany, name: e.target.value})} />
-          <input type="number" placeholder="Valor (R$)" value={newCompany.price} onChange={e => setNewCompany({...newCompany, price: e.target.value})} style={{ width: '120px' }} />
-          <select value={newCompany.type} onChange={e => setNewCompany({...newCompany, type: e.target.value as any})}>
-            <option value="GROUP">Geral (Qtd)</option>
-            <option value="INDIVIDUAL">Individual (Nome)</option>
-          </select>
-          <button onClick={handleCreate} className="btn-primary">Salvar</button>
+      {/* Modal Registration */}
+      {showRegisterModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h4>Novo Convênio</h4>
+              <button onClick={() => setShowRegisterModal(false)} className="close-modal">&times;</button>
+            </div>
+            <form onSubmit={handleRegisterCompany}>
+              <div className="form-group">
+                <label>Nome da Empresa</label>
+                <input 
+                  required
+                  value={newCompany.name}
+                  onChange={e => setNewCompany({...newCompany, name: e.target.value})}
+                  className="modern-input"
+                />
+              </div>
+              <div className="form-group">
+                <label>Valor Unitário (R$)</label>
+                <input 
+                  required
+                  type="number"
+                  step="0.01"
+                  value={newCompany.priceUnit}
+                  onChange={e => setNewCompany({...newCompany, priceUnit: e.target.value})}
+                  className="modern-input"
+                />
+              </div>
+              <div className="form-group">
+                <label>Tipo de Fechamento</label>
+                <div className="radio-group">
+                  <label>
+                    <input 
+                      type="radio" 
+                      name="billingType"
+                      checked={newCompany.billingType === 'GROUP'}
+                      onChange={() => setNewCompany({...newCompany, billingType: 'GROUP'})}
+                    />
+                    Agrupado (Só Qtd)
+                  </label>
+                  <label>
+                    <input 
+                      type="radio" 
+                      name="billingType"
+                      checked={newCompany.billingType === 'INDIVIDUAL'}
+                      onChange={() => setNewCompany({...newCompany, billingType: 'INDIVIDUAL'})}
+                    />
+                    Unitário (Nome Pessoa)
+                  </label>
+                </div>
+              </div>
+              <button type="submit" className="btn-submit">Salvar Empresa</button>
+            </form>
+          </div>
         </div>
       )}
-
-      {/* LIST OF ROWS */}
-      <div className="rows-container">
-        {rows.map((row) => {
-          const selectedCompany = companies.find(c => c.id === row.companyId);
-          const isIndividual = selectedCompany?.billingType === 'INDIVIDUAL';
-          
-          return (
-            <div key={row.id} className="agreement-row">
-              <div className="field-group grow">
-                <label>Empresa</label>
-                <select 
-                  value={row.companyId} 
-                  onChange={e => updateRow(row.id, 'companyId', e.target.value)}
-                  className="row-select"
-                >
-                  <option value="">Selecione...</option>
-                  {companies.map(c => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} (R$ {Number(c.priceUnit).toFixed(2)})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {isIndividual ? (
-                 <div className="field-group grow">
-                 <label>Funcionário</label>
-                 <input 
-                   type="text"
-                   value={row.consumer}
-                   onChange={e => updateRow(row.id, 'consumer', e.target.value)}
-                   className="row-input"
-                   placeholder="Nome..."
-                 />
-               </div>
-              ) : (
-                <div className="field-group" style={{ width: '80px' }}>
-                  <label>Qtd</label>
-                  <input 
-                    type="number" 
-                    value={row.quantity} 
-                    onChange={e => updateRow(row.id, 'quantity', Number(e.target.value))}
-                    className="row-input center"
-                    min={1}
-                  />
-                </div>
-              )}
-
-              <div className="row-total">
-                <label>Total</label>
-                <span>R$ {calculateRowTotal(row).toFixed(2)}</span>
-              </div>
-
-              <div className="row-actions">
-                <button 
-                  onClick={() => handleRemoveRow(row.id)}
-                  className="btn-icon-trash"
-                  title="Remover linha"
-                >
-                  🗑️
-                </button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      <button onClick={handleAddRow} className="add-row-btn">
-        + Adicionar Convênio
-      </button>
-
-      <div className="footer-summary">
-        <span>Total em Vouchers:</span>
-        <span className="total-value">R$ {grandTotal.toFixed(2)}</span>
-      </div>
-
-      <div className="action-bar">
-         <button onClick={handleLaunch} className="btn-primary full-width">
-            CONFIRMAR LANÇAMENTOS
-         </button>
-      </div>
     </div>
   );
 }

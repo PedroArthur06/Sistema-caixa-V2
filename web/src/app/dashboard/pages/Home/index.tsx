@@ -120,7 +120,10 @@ export function Dashboard() {
           )}
 
           {activeTab === 'CONVENIOS' && (
-            <AgreementsPanel onSuccess={loadReport} />
+            <AgreementsPanel 
+              report={report} // Agora passamos o report completo
+              onSuccess={loadReport} 
+            />
           )}
 
           {activeTab === 'RESUMO' && (

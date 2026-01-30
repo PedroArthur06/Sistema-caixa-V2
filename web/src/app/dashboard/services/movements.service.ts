@@ -21,12 +21,22 @@ export interface CreateMovementDTO {
   companyId?: string;
   itemCategory?: 'MEAL' | 'EXTRA';
   consumer?: string;
+  unitValue?: number;
 }
 
 class MovementsService {
   async create(data: CreateMovementDTO) {
     const response = await api.post('/movements', data);
     return response.data;
+  }
+
+  async update(id: string, data: Partial<CreateMovementDTO>) {
+    const response = await api.put(`/movements/${id}`, data);
+    return response.data;
+  }
+
+  async delete(id: string) {
+    await api.delete(`/movements/${id}`);
   }
 }
 
