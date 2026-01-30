@@ -35,6 +35,7 @@ model Company {
   active      Boolean     @default(true)
   
   movements   Movement[]  
+  closings  Closing[]
 
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
@@ -100,6 +101,10 @@ model Movement {
   
   createdAt    DateTime      @default(now())
 
+  closingId    String?   @map("closing_id")
+  closing      Closing?  @relation(fields: [closingId], references: [id])
+  
+
   @@map("movements")
 }
 
@@ -147,4 +152,21 @@ model AuditLog {
   @@index([userId])
   @@index([entity, entityId])
   @@index([createdAt])
+}
+
+model Closing {
+  id          String   @id @default(uuid())
+  
+  companyId   String   @map("company_id")
+  company     Company  @relation(fields: [companyId], references: [id])
+  
+  totalAmount Decimal  @map("total_amount") @db.Decimal(10, 2)
+  startDate   DateTime @map("start_date") // Data do 1º pedido do ciclo
+  endDate     DateTime @map("end_date")   // Data do fechamento
+  
+  movements   Movement[]
+
+  createdAt   DateTime @default(now())
+
+  @@map("closings")
 }
