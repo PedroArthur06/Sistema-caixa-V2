@@ -49,4 +49,19 @@ export class MovementsController {
     const userAgent = req.headers['user-agent'];
     return this.service.delete(id, userId, ip, userAgent);
   }
+
+  @Get('closings/open')
+  getOpenClosings(@Query() query: GetHistoryDto) {
+    return this.service.getOpenClosings(query);
+  }
+
+  @Get('closings/details/:companyId')
+  getClosingDetails(@Param('companyId') companyId: string) {
+    return this.service.getOpenMovementsByCompany(companyId);
+  }
+
+  @Post('closings/finish')
+  finishClosing(@Body() body: { companyId: string, endDate: string }) {
+    return this.service.performClosing(body.companyId, body.endDate);
+  }
 }

@@ -205,4 +205,97 @@ export class MovementsService {
 
     return enrichedResults.filter(Boolean);
   }
+
+  async getOpenClosings(filters: GetHistoryDto) {
+
+    let end: Date;
+    if (filters.endDate) {
+      const [year, month, day] = filters.endDate.split('-').map(Number);
+      end = new Date(year, month - 1, day, 23, 59, 59, 999);
+    } else {
+      end = new Date();
+      end.setHours(23, 59, 59, 999);
+    }
+
+    const groupByResults = await this.prisma.movement.groupBy({
+      by: ['companyId'],
+      where: {
+        type: 'INCOME_AGREEMENT',
+        companyId: filters.companyId || undefined,
+        closingId: null, 
+        createdAt: { lte: end }
+      },
+      _sum: { amount: true, quantity: true },
+      _count: { id: true },
+      _min: { createdAt: true } 
+    });
+
+    const results = await Promise.all(groupByResults.map(async (item) => {
+      if (!item.companyId) return null;
+
+      const company = await this.prisma.company.findUnique({
+        where: { id: item.companyId },
+        select: { name: true, billingType: true } 
+      });
+
+      return {
+        companyId: item.companyId,
+        companyName: company?.name || 'Desconhecida',
+        billingType: company?.billingType,
+        totalAmount: item._sum.amount,
+        totalQuantity: item._sum.quantity,
+        totalTickets: item._count.id,
+        firstOrderDate: item._min.createdAt
+      };
+    }));
+
+    return results.filter(Boolean);
+  }
+
+  async getOpenMovementsByCompany(companyId: string) {
+    return this.prisma.movement.findMany({
+      where: {
+        companyId,
+        type: 'INCOME_AGREEMENT',
+        closingId: null
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
+  async performClosing(companyId: string, endDate: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const [year, month, day] = endDate.split('-').map(Number);
+      const end = new Date(year, month - 1, day, 23, 59, 59, 999);
+      const movements = await tx.movement.findMany({
+        where: {
+          companyId,
+          type: 'INCOME_AGREEMENT',
+          closingId: null,
+          createdAt: { lte: end }
+        }
+      });
+
+      if (movements.length === 0) throw new BadRequestException("Nada para fechar.");
+
+      const total = movements.reduce((acc, m) => acc.add(m.amount), new Decimal(0));
+      const startDate = movements.reduce((min, m) => m.createdAt < min ? m.createdAt : min, movements[0].createdAt);
+
+      const closing = await tx.closing.create({
+        data: {
+          companyId,
+          totalAmount: total,
+          startDate,
+          endDate: end
+        }
+      });
+
+      await tx.movement.updateMany({
+        where: { id: { in: movements.map(m => m.id) } },
+        data: { closingId: closing.id }
+      });
+
+      return closing;
+    });
+  }
 }
