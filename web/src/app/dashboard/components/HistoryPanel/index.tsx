@@ -5,8 +5,8 @@ import "./styles.css";
 
 export function HistoryPanel() {
   // Estados dos Filtros
-  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
-  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
+  const [startDate, setStartDate] = useState(new Date().toLocaleDateString('en-CA')); 
+  const [endDate, setEndDate] = useState(new Date().toLocaleDateString('en-CA'));
   const [selectedCompany, setSelectedCompany] = useState<string>("");
   
   // Estado dos Dados

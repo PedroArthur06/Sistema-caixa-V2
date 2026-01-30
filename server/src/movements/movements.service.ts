@@ -134,9 +134,11 @@ export class MovementsService {
   async findHistory(filters: GetHistoryDto) {
     const { startDate, endDate, companyId } = filters;
 
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    end.setHours(23, 59, 59, 999);
+    const [startYear, startMonth, startDay] = startDate.split('-').map(Number);
+    const [endYear, endMonth, endDay] = endDate.split('-').map(Number);
+
+    const start = new Date(startYear, startMonth - 1, startDay, 0, 0, 0, 0);
+    const end = new Date(endYear, endMonth - 1, endDay, 23, 59, 59, 999);
 
     return this.prisma.movement.findMany({
       where: {
@@ -157,9 +159,11 @@ export class MovementsService {
   async getClosings(filters: GetHistoryDto) {
     const { startDate, endDate, companyId } = filters;
 
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    end.setHours(23, 59, 59, 999);
+    const [startYear, startMonth, startDay] = startDate.split('-').map(Number);
+    const [endYear, endMonth, endDay] = endDate.split('-').map(Number);
+
+    const start = new Date(startYear, startMonth - 1, startDay, 0, 0, 0, 0);
+    const end = new Date(endYear, endMonth - 1, endDay, 23, 59, 59, 999);
 
     const groupByResults = await this.prisma.movement.groupBy({
       by: ['companyId'],
