@@ -20,6 +20,11 @@ export function AgreementsPanel({ report, onSuccess }: AgreementsPanelProps) {
     billingType: 'GROUP' as 'GROUP' | 'INDIVIDUAL'
   });
 
+  // Consumer Input Modal State
+  const [selectedCompanyForInput, setSelectedCompanyForInput] = useState<Company | null>(null);
+  const [consumerInput, setConsumerInput] = useState('');
+  const [quantityInput, setQuantityInput] = useState(1);
+
   useEffect(() => {
     loadCompanies();
   }, []);
@@ -74,14 +79,21 @@ export function AgreementsPanel({ report, onSuccess }: AgreementsPanelProps) {
     }
 
     // Create default movement
-    try {
+      if (company.billingType === 'INDIVIDUAL') {
+        setSelectedCompanyForInput(company);
+        setConsumerInput('');
+        setQuantityInput(1);
+        return;
+      }
+
+      try {
       await movementsService.create({
         type: MovementType.INCOME_AGREEMENT,
         amount: Number(company.priceUnit),
         quantity: 1,
         companyId: company.id,
+        itemCategory: 'MEAL',
         description: `Convênio: ${company.name}`,
-        unitValue: Number(company.priceUnit), 
         consumer: ''
       } as any); // Cast because unitValue might not be in CreateDTO but backend accepts it? relying on service
       onSuccess();
@@ -141,6 +153,30 @@ export function AgreementsPanel({ report, onSuccess }: AgreementsPanelProps) {
       alert("Empresa cadastrada com sucesso!");
     } catch (error) {
       alert("Erro ao cadastrar empresa");
+    }
+  }
+
+  async function handleConfirmUnitAgreement(e: React.FormEvent) {
+    e.preventDefault();
+    if (!selectedCompanyForInput || !consumerInput) return;
+
+    try {
+      await movementsService.create({
+        type: MovementType.INCOME_AGREEMENT,
+        amount: Number(selectedCompanyForInput.priceUnit) * quantityInput,
+        quantity: quantityInput,
+        companyId: selectedCompanyForInput.id,
+        itemCategory: 'MEAL',
+        description: `Convênio: ${selectedCompanyForInput.name}`,
+        consumer: consumerInput
+      } as any);
+      
+      onSuccess();
+      setSelectedCompanyForInput(null);
+      setConsumerInput('');
+      setQuantityInput(1);
+    } catch (error) {
+alert("Erro ao adicionar convênio");
     }
   }
 
@@ -306,6 +342,50 @@ export function AgreementsPanel({ report, onSuccess }: AgreementsPanelProps) {
                 </div>
               </div>
               <button type="submit" className="btn-submit">Salvar Empresa</button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Consumer Input Modal */}
+      {selectedCompanyForInput && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h4>Adicionar - {selectedCompanyForInput.name}</h4>
+              <button onClick={() => setSelectedCompanyForInput(null)} className="close-modal">&times;</button>
+            </div>
+            <form onSubmit={handleConfirmUnitAgreement}>
+              <div className="form-group">
+                <label>Nome do Funcionário</label>
+                <input 
+                  required
+                  autoFocus
+                  placeholder="Nome completo..."
+                  value={consumerInput}
+                  onChange={e => setConsumerInput(e.target.value)}
+                  className="modern-input"
+                />
+              </div>
+              <div className="form-group">
+                <label>Quantidade de Refeições</label>
+                <input 
+                  required
+                  type="number"
+                  min="1"
+                  value={quantityInput}
+                  onChange={e => setQuantityInput(Number(e.target.value))}
+                  className="modern-input"
+                />
+              </div>
+              <div className="form-actions">
+                <button type="button" onClick={() => setSelectedCompanyForInput(null)} className="btn-cancel">
+                  Cancelar
+                </button>
+                <button type="submit" className="btn-submit">
+                  Confirmar Adição
+                </button>
+              </div>
             </form>
           </div>
         </div>

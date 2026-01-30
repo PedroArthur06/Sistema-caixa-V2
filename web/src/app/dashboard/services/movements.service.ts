@@ -21,7 +21,7 @@ export interface CreateMovementDTO {
   companyId?: string;
   itemCategory?: 'MEAL' | 'EXTRA';
   consumer?: string;
-  unitValue?: number;
+
 }
 
 class MovementsService {
