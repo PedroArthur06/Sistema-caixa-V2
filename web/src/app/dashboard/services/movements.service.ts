@@ -4,25 +4,26 @@ export const MovementType = {
   INCOME_CASH: 'INCOME_CASH',
   INCOME_DEBIT: 'INCOME_DEBIT',
   INCOME_CREDIT: 'INCOME_CREDIT',
-  INCOME_PIX_KEY: 'INCOME_PIX_KEY',
   INCOME_QR_CODE: 'INCOME_QR_CODE',
-  INCOME_AGREEMENT: 'INCOME_AGREEMENT',
+  INCOME_PIX_KEY: 'INCOME_PIX_KEY',
   INCOME_IFOOD: 'INCOME_IFOOD',
-  EXPENSE: 'EXPENSE',
+  INCOME_AGREEMENT: 'INCOME_AGREEMENT',
+  EXPENSE: 'EXPENSE'
 } as const;
 
 export type MovementType = typeof MovementType[keyof typeof MovementType];
 
-export interface CreateMovementDTO {
+export interface CreateMovementDto {
   type: MovementType;
   amount: number;
-  quantity: number;
   description?: string;
   companyId?: string;
   itemCategory?: 'MEAL' | 'EXTRA';
   consumer?: string;
-
+  quantity?: number;
 }
+
+export type CreateMovementDTO = CreateMovementDto;
 
 export interface HistoryFilter {
   startDate: string;
@@ -38,30 +39,47 @@ export interface ClosingData {
   totalTickets: number;
 }
 
-class MovementsService {
-  async create(data: CreateMovementDTO) {
-    const response = await api.post('/movements', data);
-    return response.data;
-  }
+export const movementsService = {
+  create: async (data: CreateMovementDto) => {
+    return api.post('/movements', data);
+  },
 
-  async update(id: string, data: Partial<CreateMovementDTO>) {
-    const response = await api.put(`/movements/${id}`, data);
-    return response.data;
-  }
+  getAllToday: async () => {
+    const { data } = await api.get('/movements');
+    return data;
+  },
 
-  async delete(id: string) {
-    await api.delete(`/movements/${id}`);
-  }
+  update: async (id: string, data: Partial<CreateMovementDto>) => {
+    const { data: responseData } = await api.put(`/movements/${id}`, data);
+    return responseData;
+  },
 
-  async getHistory(filters: HistoryFilter) {
-    const response = await api.get('/movements/history', { params: filters });
-    return response.data;
-  }
+  delete: async (id: string) => {
+    return api.delete(`/movements/${id}`);
+  },
 
-  async getClosings(filters: HistoryFilter) {
-    const response = await api.get('/movements/closings', { params: filters });
-    return response.data;
-  }
-}
 
-export const movementsService = new MovementsService();
+  // 1. Histórico Geral (Extrato corrido)
+  getHistory: async (filter: HistoryFilter) => {
+    const { data } = await api.get('/movements/history', { params: filter });
+    return data;
+  },
+
+  // 2. Busca empresas que estão DEVENDO (Ciclo aberto)
+  getOpenClosings: async (filter: HistoryFilter) => {
+    const { data } = await api.get('/movements/closings/open', { params: filter });
+    return data;
+  },
+
+  // 3. Busca os detalhes (pedidos) de uma empresa específica para expandir
+  getOpenDetails: async (companyId: string) => {
+    const { data } = await api.get(`/movements/closings/details/${companyId}`);
+    return data;
+  },
+
+  // 4. ZERA a conta (Fecha o ciclo)
+  performClosing: async (companyId: string, endDate: string) => {
+    const { data } = await api.post('/movements/closings/finish', { companyId, endDate });
+    return data;
+  }
+};

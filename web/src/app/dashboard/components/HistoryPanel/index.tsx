@@ -1,7 +1,21 @@
 import { useState, useEffect } from "react";
-import { movementsService, type HistoryFilter, type ClosingData } from "../../services/movements.service";
+import { movementsService, type HistoryFilter } from "../../services/movements.service";
 import { companiesService } from "../../services/companies.service";
-import "./styles.css"; 
+import "./styles.css";
+
+// Helper para agrupar por consumidor (JavaScript puro)
+function groupByConsumer(movements: any[]) {
+  const groups: Record<string, { total: number, items: any[] }> = {};
+  
+  movements.forEach(m => {
+    const name = m.consumer || 'Não Identificado';
+    if (!groups[name]) groups[name] = { total: 0, items: [] };
+    groups[name].total += Number(m.amount);
+    groups[name].items.push(m);
+  });
+
+  return Object.entries(groups).map(([name, data]) => ({ name, ...data }));
+}
 
 export function HistoryPanel() {
   // Estados dos Filtros
@@ -12,9 +26,13 @@ export function HistoryPanel() {
   // Estado dos Dados
   const [viewMode, setViewMode] = useState<'EXTRATO' | 'FECHAMENTO'>('EXTRATO');
   const [historyData, setHistoryData] = useState<any[]>([]);
-  const [closingData, setClosingData] = useState<ClosingData[]>([]);
+  const [closings, setClosings] = useState<any[]>([]); // Mudado de closingData para closings
   const [companies, setCompanies] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // Estado para controlar qual empresa está expandida
+  const [expandedCompany, setExpandedCompany] = useState<string | null>(null);
+  const [details, setDetails] = useState<any[]>([]); // Detalhes da empresa expandida
 
   // Carregar empresas para o select
   useEffect(() => {
@@ -35,8 +53,8 @@ export function HistoryPanel() {
         const data = await movementsService.getHistory(filter);
         setHistoryData(data);
       } else {
-        const data = await movementsService.getClosings(filter);
-        setClosingData(data);
+        const data = await movementsService.getOpenClosings(filter);
+        setClosings(data);
       }
     } catch (error) {
       alert("Erro ao buscar dados");
@@ -49,11 +67,32 @@ export function HistoryPanel() {
   // Monitorar mudança de aba para buscar automaticamente
   useEffect(() => {
     handleSearch();
-  }, [viewMode]); // Recarrega quando troca de aba visual
+  }, [viewMode]); 
 
-  // Função simples de impressão
-  function handlePrint() {
-    window.print();
+  // Função para carregar detalhes ao expandir
+  async function toggleExpand(companyId: string) {
+    if (expandedCompany === companyId) {
+      setExpandedCompany(null); // Fecha se já estiver aberto
+      return;
+    }
+    
+    setExpandedCompany(companyId);
+    setDetails([]); // Limpa anterior
+    try {
+      const data = await movementsService.getOpenDetails(companyId);
+      setDetails(data);
+    } catch (error) { console.error(error); }
+  }
+
+  async function handleRealizarFechamento(companyId: string) {
+    if (!confirm("Tem certeza? Isso vai ZERAR o saldo desta empresa e marcar estes pedidos como cobrados.")) return;
+    
+    try {
+      await movementsService.performClosing(companyId, endDate); // Usa a data do filtro como corte
+      alert("Ciclo fechado com sucesso!");
+      handleSearch(); // Recarrega a lista
+      setExpandedCompany(null);
+    } catch (error) { alert("Erro ao fechar ciclo."); }
   }
 
   return (
@@ -160,34 +199,82 @@ export function HistoryPanel() {
 
           {viewMode === 'FECHAMENTO' && (
             <div className="closing-mode">
-               <div className="closing-header">
-                  <h3>Totalizadores por Empresa</h3>
-                  <button onClick={handlePrint} className="btn-print">🖨️ Imprimir Relatório</button>
-               </div>
-               
-               <div className="closings-grid">
-                 {closingData.map(item => (
-                   <div key={item.companyId} className="closing-card">
-                     <h3 className="card-title">{item.companyName}</h3>
-                     
-                     <div className="card-row">
-                        <span className="card-label">Qtd. Pedidos:</span>
-                        <span className="card-value">{item.totalTickets}</span>
-                     </div>
-                     <div className="card-row">
-                        <span className="card-label">Marmitas/Itens:</span>
-                        <span className="card-value">{item.totalQuantity}</span>
-                     </div>
-                     
-                     <div className="card-footer">
-                        <span className="total-label">Total Gasto</span>
-                        <span className="total-value">R$ {Number(item.totalAmount).toFixed(2)}</span>
-                     </div>
-                   </div>
-                 ))}
-               </div>
-               
-               {closingData.length === 0 && <div className="empty-state">Nenhum fechamento encontrado neste período.</div>}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {closings.map(item => {
+                  const isExpanded = expandedCompany === item.companyId;
+                  const isIndividual = item.billingType === 'INDIVIDUAL';
+                  
+                  // Se for Individual, agrupamos os detalhes por pessoa
+                  const consumerGroups = isExpanded && isIndividual ? groupByConsumer(details) : [];
+
+                  return (
+                    <div key={item.companyId} style={{ background: 'white', borderRadius: '12px', border: '1px solid #eee', overflow: 'hidden' }}>
+                      
+                      {/* CABEÇALHO DO CARD (Clicável) */}
+                      <div 
+                        onClick={() => toggleExpand(item.companyId)}
+                        style={{ padding: '1.5rem', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: isExpanded ? '#f9fafb' : 'white' }}
+                      >
+                        <div>
+                          <h3 style={{ margin: 0, color: 'var(--color-primary)' }}>{item.companyName}</h3>
+                          <span style={{ fontSize: '0.8rem', color: '#666', background: '#eee', padding: '2px 8px', borderRadius: '4px' }}>
+                            {isIndividual ? 'Por Pessoa' : 'Grupo Único'}
+                          </span>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#059669' }}>
+                            R$ {Number(item.totalAmount).toFixed(2)}
+                          </div>
+                          <small style={{ color: '#888' }}>{isExpanded ? '▼ Recolher' : '▶ Ver Detalhes'}</small>
+                        </div>
+                      </div>
+
+                      {/* ÁREA EXPANDIDA (Detalhes) */}
+                      {isExpanded && (
+                        <div style={{ borderTop: '1px solid #eee', padding: '1.5rem', animation: 'fadeIn 0.3s' }}>
+                          
+                          {/* VISUALIZAÇÃO INDIVIDUAL (Por Pessoa) */}
+                          {isIndividual ? (
+                            <div style={{ display: 'grid', gap: '0.5rem', marginBottom: '1.5rem' }}>
+                              {consumerGroups.map((group: any) => (
+                                <div key={group.name} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', borderBottom: '1px dashed #eee' }}>
+                                  <span>👤 {group.name}</span>
+                                  <strong>R$ {group.total.toFixed(2)}</strong>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            // VISUALIZAÇÃO GRUPO (Lista Simples)
+                            <ul style={{ marginBottom: '1.5rem', paddingLeft: '1rem', color: '#555' }}>
+                              {details.map(d => (
+                                <li key={d.id}>
+                                  {new Date(d.createdAt).toLocaleDateString()} - {d.description || 'Marmita'} (R$ {Number(d.amount).toFixed(2)})
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+
+                          {/* AÇÕES DO FECHAMENTO */}
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem', borderTop: '1px solid #eee', paddingTop: '1rem' }}>
+                            <button onClick={() => window.print()} className="btn-secondary">
+                              🖨️ Imprimir Conferência
+                            </button>
+                            <button 
+                              onClick={() => handleRealizarFechamento(item.companyId)}
+                              className="btn-primary"
+                              style={{ background: '#059669' }}
+                            >
+                              ✅ CONFIRMAR FECHAMENTO E ZERAR
+                            </button>
+                          </div>
+
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              {closings.length === 0 && <div className="empty-state">Nenhum fechamento pendente.</div>}
             </div>
           )}
         </>
