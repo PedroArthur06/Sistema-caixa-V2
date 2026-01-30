@@ -5,6 +5,7 @@ import { MovementType, ItemCategory, BillingType, Prisma } from '@prisma/client'
 import { Decimal } from '@prisma/client/runtime/library';
 import { DateProvider } from 'src/shared/providers/date-provider.service';
 import { AuditService } from '../audit/audit.service';
+import { GetHistoryDto } from './dto/get-history.dto';
 
 @Injectable()
 export class MovementsService {
@@ -128,5 +129,76 @@ export class MovementsService {
         }
       });
     });
+  }
+
+  async findHistory(filters: GetHistoryDto) {
+    const { startDate, endDate, companyId } = filters;
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+
+    return this.prisma.movement.findMany({
+      where: {
+        createdAt: {
+          gte: start,
+          lte: end,
+        },
+        companyId: companyId || undefined,
+      },
+      include: {
+        company: { select: { name: true } },
+        user: { select: { name: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async getClosings(filters: GetHistoryDto) {
+    const { startDate, endDate, companyId } = filters;
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+
+    const groupByResults = await this.prisma.movement.groupBy({
+      by: ['companyId'],
+      where: {
+        type: 'INCOME_AGREEMENT',
+        companyId: companyId || undefined,
+        createdAt: {
+          gte: start,
+          lte: end,
+        },
+      },
+      _sum: {
+        amount: true,
+        quantity: true,
+      },
+      _count: {
+        id: true,
+      },
+    });
+
+    const enrichedResults = await Promise.all(
+      groupByResults.map(async (item) => {
+        if (!item.companyId) return null;
+        
+        const company = await this.prisma.company.findUnique({
+          where: { id: item.companyId },
+          select: { name: true },
+        });
+
+        return {
+          companyId: item.companyId,
+          companyName: company?.name || 'Desconhecida',
+          totalAmount: item._sum.amount,
+          totalQuantity: item._sum.quantity,
+          totalTickets: item._count.id,
+        };
+      })
+    );
+
+    return enrichedResults.filter(Boolean);
   }
 }
