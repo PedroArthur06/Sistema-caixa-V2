@@ -24,6 +24,20 @@ export interface CreateMovementDTO {
 
 }
 
+export interface HistoryFilter {
+  startDate: string;
+  endDate: string;
+  companyId?: string;
+}
+
+export interface ClosingData {
+  companyId: string;
+  companyName: string;
+  totalAmount: number;
+  totalQuantity: number;
+  totalTickets: number;
+}
+
 class MovementsService {
   async create(data: CreateMovementDTO) {
     const response = await api.post('/movements', data);
@@ -37,6 +51,16 @@ class MovementsService {
 
   async delete(id: string) {
     await api.delete(`/movements/${id}`);
+  }
+
+  async getHistory(filters: HistoryFilter) {
+    const response = await api.get('/movements/history', { params: filters });
+    return response.data;
+  }
+
+  async getClosings(filters: HistoryFilter) {
+    const response = await api.get('/movements/closings', { params: filters });
+    return response.data;
   }
 }
 

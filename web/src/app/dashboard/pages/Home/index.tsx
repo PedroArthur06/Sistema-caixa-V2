@@ -5,8 +5,9 @@ import { CounterClosingPanel } from "../../components/CounterClosingPanel";
 import { AgreementsPanel } from "../../components/AgreementsPanel";
 import { FinalReportPanel } from "../../components/FinalReportPanel";
 import { movementsService, MovementType } from "../../services/movements.service";
+import { HistoryPanel } from "../../components/HistoryPanel"; 
 
-type Tab = 'BALCAO' | 'CONVENIOS' | 'RESUMO';
+type Tab = 'BALCAO' | 'CONVENIOS' | 'RESUMO' | 'HISTORICO';
 
 export function Dashboard() {
   const { signOut, user } = useAuth();
@@ -108,6 +109,12 @@ export function Dashboard() {
           >
             📊 Resumo & Despesas
           </button>
+          <button 
+            className={`tab-item ${activeTab === 'HISTORICO' ? 'active' : ''}`}
+            onClick={() => setActiveTab('HISTORICO')}
+          >
+            📅 Histórico & Fechamentos
+          </button>
         </div>
 
         {/* ÁREA DE CONTEÚDO (Só renderiza o ativo) */}
@@ -160,6 +167,13 @@ export function Dashboard() {
 
             </div>
           )}
+
+          {activeTab === 'HISTORICO' && (
+            <div style={{ maxWidth: '100%', margin: '0 0' }}>
+              <HistoryPanel />
+            </div>
+          )}
+
 
         </div>
 
